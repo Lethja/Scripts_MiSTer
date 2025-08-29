@@ -258,7 +258,8 @@ function gui_connect_wifi() {
     _set_interface_wifi down 2>/dev/null
     _set_interface_wifi up 2>/dev/null
     # BEGIN workaround for dhcpcd trigger failure on Raspbian stretch
-    systemctl restart dhcpcd &>/dev/null
+    # This workaround not applicable to MiSTer as it does not use SystemD
+    # systemctl restart dhcpcd &>/dev/null
     # END workaround
     dialog --backtitle "$__backtitle" --infobox "\nConnecting ..." 5 40 >/dev/tty2
     local id=""
