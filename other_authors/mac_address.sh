@@ -75,7 +75,7 @@ update_mac() {
 	dialog --infobox "$msg" 3 "$len" 2>&1 >/dev/tty
 	dhcpcd -k 2>/dev/null 1>/dev/null # Sadly can't specify a iface here due to dhcpcd bug
 	ip link set dev "$iface" down 2>/dev/null 1>/dev/null
-	ip link set dev "$iface" address "$mac" 2>/dev/null 1>/dev/null
+	ip link set dev "$iface" address "$1" 2>/dev/null 1>/dev/null
 	ip link set dev "$iface" up 2>/dev/null 1>/dev/null
 	sleep 3
 	dhcpcd --waitip -t 7 2>/dev/null 1>/dev/null
