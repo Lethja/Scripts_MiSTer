@@ -172,14 +172,14 @@ manual() {
 main_menu() {
 	# Check script is running as root
 	if [ "$EUID" -ne 0 ]; then
-		dialog --msgbox "Configuring MAC addresses requires root.\nPlease run again as root." 6 52  2>&1 >/dev/tty2
+		dialog --msgbox "Configuring MAC addresses requires root.\nPlease run again as root." 6 52
 		dialog --clear
 		exit 1
 	fi
 
 	# Check network interface exists
 	if [ ! -d "/sys/class/net/$iface" ]; then
-		dialog --msgbox "No interface named '$iface'.\nPlease run again and specify the interface." 6 52  2>&1 >/dev/tty2
+		dialog --msgbox "No interface named '$iface'.\nPlease run again and specify the interface." 6 52
 		dialog --clear
 		exit 1
 	fi
@@ -188,7 +188,7 @@ main_menu() {
 	if [ -n "$SSH_TTY" ]; then
 		dialog --msgbox "You appear to be running in a SSH session.\
 		Changing MAC address will cause network disruptions to this device.\
-		\n\nPlease run again locally on the device." 9 52  2>&1 >/dev/tty2
+		\n\nPlease run again locally on the device." 9 52
 		dialog --clear
 		exit 1
 	fi
