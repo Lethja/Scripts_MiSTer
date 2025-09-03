@@ -3,7 +3,7 @@ iface="${1:-eth0}"
 scan() {
 	local cidr=$(ip -o -f inet addr show $iface | awk 'NR==0 {exit 1} {print $4}')
 	if [ -n "$cidr" ]; then
-		local msg="Discovering MAC addresses on $iface network. Please wait..."
+		local msg="Discovering MAC addresses with $iface. Please wait..."
 		local len=$(( ${#msg} + 4 ))
 		len=$(( len + (len % 2) ))
 
@@ -12,11 +12,10 @@ scan() {
 		ip neigh | awk '{print $5}' | sort -u
 		return
 	else
-		local msg="There doesn't appear to be a network connection on $iface. Would you like to continue anyway?"
-		local len=$(( ${#msg} + 4 ))
-		len=$(( len + (len % 2) ))
+		local msg="There doesn't appear to be a network connection on $iface. It will not be possible to discover MAC addresses in use on your network.\
+		\n\nWould you like to continue generating a new MAC address anyway?"
 
-		dialog --yesno "$msg" 6 "$len" 2>&1 >/dev/tty
+		dialog --yesno "$msg" 8 72 2>&1 >/dev/tty
 		if [ $? -eq 0 ]; then
 			echo ""
 			return
@@ -82,8 +81,9 @@ update_mac() {
 }
 
 warn() {
-	dialog --yesno "Changing MAC address will cause network distrutptions to this device.\nMake\
-	sure any file transfers or SSH sessions are complete before proceeding.\n\nDo you want to continue?" 10 52
+	dialog --yesno "Changing MAC address will cause network disruptions on this device.\nMake\
+	sure any file transfers or SSH sessions are finished and disconnected before proceeding.\
+	\n\nDo you want to continue?" 10 52
 }
 
 auto() {
@@ -177,7 +177,7 @@ main_menu() {
 
 	if [ -n "$SSH_TTY" ]; then
 		dialog --msgbox "You appear to be running in a SSH session.\
-		Changing MAC address will cause network distruptions to this device.\
+		Changing MAC address will cause network disruptions to this device.\
 		\n\nPlease run again locally on the device." 9 52  2>&1 >/dev/tty
 		dialog --clear
 		exit 1
