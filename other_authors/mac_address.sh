@@ -9,7 +9,7 @@ scan() {
 		local len=$(( ${#msg} + 4 ))
 		len=$(( len + (len % 2) ))
 
-		dialog --infobox "$msg" 3 "$len" 2>&1 >/dev/tty
+		dialog --infobox "$msg" 3 "$len" 2>&1 >/dev/tty2
 		fping -q -r 1 -t 100 -I $iface -g $cidr
 		ip neigh | awk '{print $5}' | sort -u
 		return
@@ -17,7 +17,7 @@ scan() {
 		local msg="There doesn't appear to be a network connection on $iface. It will not be possible to discover MAC addresses in use on your network.\
 		\n\nWould you like to continue generating a new MAC address anyway?"
 
-		dialog --yesno "$msg" 8 72 2>&1 >/dev/tty
+		dialog --yesno "$msg" 8 72 2>&1 >/dev/tty2
 		if [ $? -eq 0 ]; then
 			echo ""
 			return
@@ -30,7 +30,7 @@ gen() {
 	local len=$(( ${#msg} + 4 ))
 	len=$(( len + (len % 2) ))
 
-	dialog --infobox "$msg" 3 "$len" 2>&1 >/dev/tty
+	dialog --infobox "$msg" 3 "$len" 2>&1 >/dev/tty2
 	local blacklist
 	mapfile -t blacklist <<< "$1"
 	while :; do
@@ -73,7 +73,7 @@ update_mac() {
 	local len=$(( ${#msg} + 4 ))
 	len=$(( len + (len % 2) ))
 
-	dialog --infobox "$msg" 3 "$len" 2>&1 >/dev/tty
+	dialog --infobox "$msg" 3 "$len" 2>&1 >/dev/tty2
 	dhcpcd -k 2>/dev/null 1>/dev/null # Sadly can't specify a iface here due to dhcpcd bug
 	ip link set dev "$iface" down 2>/dev/null 1>/dev/null
 	ip link set dev "$iface" address "$1" 2>/dev/null 1>/dev/null
@@ -108,11 +108,11 @@ auto() {
 		local len=$(( ${#msg} + 4 ))
 		len=$(( len + (len % 2) ))
 
-		dialog --msgbox "$msg" 5 "$len" 2>&1 >/dev/tty
+		dialog --msgbox "$msg" 5 "$len" 2>&1 >/dev/tty2
 		dialog --clear
 		exit 0
 	else
-		dialog --msgbox "There was an error configuring the MAC address" 5 52 2>&1 >/dev/tty
+		dialog --msgbox "There was an error configuring the MAC address" 5 52 2>&1 >/dev/tty2
 	fi
 }
 
@@ -125,14 +125,14 @@ manual() {
 	local current="$(cat /sys/class/net/$iface/address)"
 	local input="$current"
 	while true; do
-		input=$(dialog --inputbox "The MAC address for $iface is currently '$current'\n\nPlease enter a new MAC address..." 11 42 "$input" 2>&1 >/dev/tty)
+		input=$(dialog --inputbox "The MAC address for $iface is currently '$current'\n\nPlease enter a new MAC address..." 11 42 "$input" 2>&1 >/dev/tty2)
 		if [ $? -ne 0 ]; then
 			return
 		fi
 
 		# Validate user input is a MAC address
 		if [[ ! "$input" =~ ^([0-9A-Fa-f]{2}([-:])){5}([0-9A-Fa-f]{2})$ ]]; then
-			dialog --msgbox "Not a valid MAC address." 5 52 2>&1 >/dev/tty
+			dialog --msgbox "Not a valid MAC address." 5 52 2>&1 >/dev/tty2
 			continue
 		fi
 
@@ -140,7 +140,7 @@ manual() {
 		first_octet=$(echo "$input" | cut -d: -f1)
 		first_byte=$((16#${first_octet:0:2}))
 		if (( first_byte & 1 )) || [[ ${mac:0:2} == "02" ]] || [[ "$input" == "FF:FF:FF:FF:FF:FF" ]] || [[ "$input" == "00:00:00:00:00:00" ]]; then
-			dialog --msgbox "This MAC address can not be assigned to a network adapter." 7 32 2>&1 >/dev/tty
+			dialog --msgbox "This MAC address can not be assigned to a network adapter." 7 32 2>&1 >/dev/tty2
 			continue
 		fi
 
@@ -160,11 +160,11 @@ manual() {
 			local len=$(( ${#msg} + 4 ))
 			len=$(( len + (len % 2) ))
 
-			dialog --msgbox "$msg" 5 "$len" 2>&1 >/dev/tty
+			dialog --msgbox "$msg" 5 "$len" 2>&1 >/dev/tty2
 			dialog --clear
 			exit 0
 		else
-			dialog --msgbox "There was an error configuring the MAC address" 5 52 2>&1 >/dev/tty
+			dialog --msgbox "There was an error configuring the MAC address" 5 52 2>&1 >/dev/tty2
 		fi
 	done
 }
@@ -172,14 +172,14 @@ manual() {
 main_menu() {
 	# Check script is running as root
 	if [ "$EUID" -ne 0 ]; then
-		dialog --msgbox "Configuring MAC addresses requires root.\nPlease run again as root." 6 52  2>&1 >/dev/tty
+		dialog --msgbox "Configuring MAC addresses requires root.\nPlease run again as root." 6 52  2>&1 >/dev/tty2
 		dialog --clear
 		exit 1
 	fi
 
 	# Check network interface exists
 	if [ ! -d "/sys/class/net/$iface" ]; then
-		dialog --msgbox "No interface named '$iface'.\nPlease run again and specify the interface." 6 52  2>&1 >/dev/tty
+		dialog --msgbox "No interface named '$iface'.\nPlease run again and specify the interface." 6 52  2>&1 >/dev/tty2
 		dialog --clear
 		exit 1
 	fi
@@ -188,7 +188,7 @@ main_menu() {
 	if [ -n "$SSH_TTY" ]; then
 		dialog --msgbox "You appear to be running in a SSH session.\
 		Changing MAC address will cause network disruptions to this device.\
-		\n\nPlease run again locally on the device." 9 52  2>&1 >/dev/tty
+		\n\nPlease run again locally on the device." 9 52  2>&1 >/dev/tty2
 		dialog --clear
 		exit 1
 	fi
@@ -198,7 +198,7 @@ main_menu() {
 		choice=$(dialog --menu "The current MAC address for $iface is '$addr'.\n\nWhat do you want to do?" 12 36 3 \
 			1 "Generate MAC address" \
 			2 "Set MAC address manually" \
-			2>&1 >/dev/tty)
+			2>&1 >/dev/tty2)
 
 		case $choice in
 			1)
