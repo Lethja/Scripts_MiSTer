@@ -127,10 +127,14 @@ manual() {
 		if [ $? -ne 0 ]; then
 			return
 		fi
+
+		# Validate user input is a MAC address
 		if [[ ! "$input" =~ ^([0-9A-Fa-f]{2}([-:])){5}([0-9A-Fa-f]{2})$ ]]; then
 			dialog --msgbox "Not a valid MAC address." 5 52 2>&1 >/dev/tty
 			continue
 		fi
+
+		# Validate user input isn't a special address
 		first_octet=$(echo "$input" | cut -d: -f1)
 		first_byte=$((16#${first_octet:0:2}))
 		if (( first_byte & 1 )) || [[ ${mac:0:2} == "02" ]] || [[ "$input" == "FF:FF:FF:FF:FF:FF" ]] || [[ "$input" == "00:00:00:00:00:00" ]]; then
@@ -138,6 +142,7 @@ manual() {
 			continue
 		fi
 
+		# Don't reconfigure if the users MAC address is already what is set
 		if [ "$input" = "$current" ]; then
 			return
 		fi
@@ -163,18 +168,21 @@ manual() {
 }
 
 main_menu() {
+	# Check script is running as root
 	if [ "$EUID" -ne 0 ]; then
 		dialog --msgbox "Configuring MAC addresses requires root.\nPlease run again as root." 6 52  2>&1 >/dev/tty
 		dialog --clear
 		exit 1
 	fi
 
+	# Check network interface exists
 	if [ ! -d "/sys/class/net/$iface" ]; then
-		dialog --msgbox "No interface named '$iface'.\nTry specifying an interface." 6 52  2>&1 >/dev/tty
+		dialog --msgbox "No interface named '$iface'.\nPlease run again and specify the interface." 6 52  2>&1 >/dev/tty
 		dialog --clear
 		exit 1
 	fi
 
+	# Don't allow SSH sessions to run the script (as they would SIGHUP in the process)
 	if [ -n "$SSH_TTY" ]; then
 		dialog --msgbox "You appear to be running in a SSH session.\
 		Changing MAC address will cause network disruptions to this device.\
