@@ -107,6 +107,7 @@ auto() {
 		len=$(( len + (len % 2) ))
 
 		dialog --msgbox "$msg" 5 "$len" 2>&1 >/dev/tty
+		dialog --clear
 		exit 0
 	else
 		dialog --msgbox "There was an error configuring the MAC address" 5 52 2>&1 >/dev/tty
@@ -153,6 +154,7 @@ manual() {
 			len=$(( len + (len % 2) ))
 
 			dialog --msgbox "$msg" 5 "$len" 2>&1 >/dev/tty
+			dialog --clear
 			exit 0
 		else
 			dialog --msgbox "There was an error configuring the MAC address" 5 52 2>&1 >/dev/tty
@@ -188,8 +190,6 @@ main_menu() {
 			2 "Set MAC address manually" \
 			2>&1 >/dev/tty)
 
-		dialog --clear
-
 		case $choice in
 			1)
 				auto
@@ -198,6 +198,7 @@ main_menu() {
 				manual
 			;;
 			*)
+				dialog --clear
 				exit 0
 			;;
 		esac
