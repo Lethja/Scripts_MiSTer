@@ -9,7 +9,7 @@ scan() {
 		local len=$(( ${#msg} + 4 ))
 		len=$(( len + (len % 2) ))
 
-		dialog --infobox "$msg" 3 "$len" 2>&1 >/dev/tty2
+		dialog --infobox "$msg" 3 "$len" 1>&2
 		fping -q -r 1 -t 100 -I $iface -g $cidr
 		ip neigh | awk '{print $5}' | sort -u
 		return
@@ -17,7 +17,7 @@ scan() {
 		local msg="There doesn't appear to be a network connection on $iface. It will not be possible to discover MAC addresses in use on your network.\
 		\n\nWould you like to continue generating a new MAC address anyway?"
 
-		dialog --yesno "$msg" 8 72 2>&1 >/dev/tty2
+		dialog --yesno "$msg" 8 72 1>&2
 		if [ $? -eq 0 ]; then
 			echo ""
 			return
@@ -30,7 +30,7 @@ gen() {
 	local len=$(( ${#msg} + 4 ))
 	len=$(( len + (len % 2) ))
 
-	dialog --infobox "$msg" 3 "$len" 2>&1 >/dev/tty2
+	dialog --infobox "$msg" 3 "$len" 1>&2
 	local blacklist
 	mapfile -t blacklist <<< "$1"
 	while :; do
@@ -73,7 +73,7 @@ update_mac() {
 	local len=$(( ${#msg} + 4 ))
 	len=$(( len + (len % 2) ))
 
-	dialog --infobox "$msg" 3 "$len" 2>&1 >/dev/tty2
+	dialog --infobox "$msg" 3 "$len" 1>&2
 	dhcpcd -k 2>/dev/null 1>/dev/null # Sadly can't specify a iface here due to dhcpcd bug
 	ip link set dev "$iface" down 2>/dev/null 1>/dev/null
 	ip link set dev "$iface" address "$1" 2>/dev/null 1>/dev/null
@@ -85,7 +85,7 @@ update_mac() {
 warn() {
 	dialog --yesno "Changing MAC address will cause network disruptions on this device.\nMake\
 	sure any file transfers or SSH sessions are finished and disconnected before proceeding.\
-	\n\nDo you want to continue?" 10 52
+	\n\nDo you want to continue?" 10 52 1>&2
 }
 
 auto() {
@@ -108,11 +108,11 @@ auto() {
 		local len=$(( ${#msg} + 4 ))
 		len=$(( len + (len % 2) ))
 
-		dialog --msgbox "$msg" 5 "$len" 2>&1 >/dev/tty2
+		dialog --msgbox "$msg" 5 "$len" 1>&2
 		dialog --clear
 		exit 0
 	else
-		dialog --msgbox "There was an error configuring the MAC address" 5 52 2>&1 >/dev/tty2
+		dialog --msgbox "There was an error configuring the MAC address" 5 52 1>&2
 	fi
 }
 
@@ -125,7 +125,7 @@ manual() {
 	local current="$(cat /sys/class/net/$iface/address)"
 	local input="$current"
 	while true; do
-		input=$(dialog --inputbox "The MAC address for $iface is currently '$current'\n\nPlease enter a new MAC address..." 11 42 "$input" 2>&1 >/dev/tty2)
+		input=$(dialog --inputbox "The MAC address for $iface is currently '$current'\n\nPlease enter a new MAC address..." 11 42 "$input" 3>&1 1>&2 2>&3)
 		if [ $? -ne 0 ]; then
 			return
 		fi
@@ -135,7 +135,7 @@ manual() {
 
 		# Validate user input is a MAC address
 		if [[ ! "$input" =~ ^([0-9A-Fa-f]{2}([-:])){5}([0-9A-Fa-f]{2})$ ]]; then
-			dialog --msgbox "Not a valid MAC address." 5 52 2>&1 >/dev/tty2
+			dialog --msgbox "Not a valid MAC address." 5 52 1>&2
 			continue
 		fi
 
@@ -163,11 +163,11 @@ manual() {
 			local len=$(( ${#msg} + 4 ))
 			len=$(( len + (len % 2) ))
 
-			dialog --msgbox "$msg" 5 "$len" 2>&1 >/dev/tty2
+			dialog --msgbox "$msg" 5 "$len" 1>&2
 			dialog --clear
 			exit 0
 		else
-			dialog --msgbox "There was an error configuring the MAC address" 5 52 2>&1 >/dev/tty2
+			dialog --msgbox "There was an error configuring the MAC address" 5 52 1>&2
 		fi
 	done
 }
@@ -199,9 +199,7 @@ main_menu() {
 	while true; do
 		local addr=$(cat /sys/class/net/$iface/address)
 		choice=$(dialog --menu "The current MAC address for $iface is '$addr'.\n\nWhat do you want to do?" 12 36 3 \
-			1 "Generate MAC address" \
-			2 "Set MAC address manually" \
-			2>&1 >/dev/tty2)
+			1 "Generate MAC address" 2 "Set MAC address manually" 3>&1 1>&2 2>&3)
 
 		case $choice in
 			1)
