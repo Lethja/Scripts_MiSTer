@@ -130,6 +130,9 @@ manual() {
 			return
 		fi
 
+		# Convert '-' to ':'
+		input=${input//-/:}
+
 		# Validate user input is a MAC address
 		if [[ ! "$input" =~ ^([0-9A-Fa-f]{2}([-:])){5}([0-9A-Fa-f]{2})$ ]]; then
 			dialog --msgbox "Not a valid MAC address." 5 52 2>&1 >/dev/tty2
@@ -139,8 +142,8 @@ manual() {
 		# Validate user input isn't a special address
 		first_octet=$(echo "$input" | cut -d: -f1)
 		first_byte=$((16#${first_octet:0:2}))
-		if (( first_byte & 1 )) || [[ ${mac:0:2} == "02" ]] || [[ "$input" == "FF:FF:FF:FF:FF:FF" ]] || [[ "$input" == "00:00:00:00:00:00" ]]; then
-			dialog --msgbox "This MAC address can not be assigned to a network adapter." 7 32 2>&1 >/dev/tty2
+		if (( first_byte & 1 )) || [[ "$input" == "FF:FF:FF:FF:FF:FF" ]] || [[ "$input" == "00:00:00:00:00:00" ]]; then
+			dialog --msgbox "This MAC address can not be assigned to a network adapter." 7 32 1>&2
 			continue
 		fi
 
