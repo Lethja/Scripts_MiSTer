@@ -45,10 +45,10 @@ gen() {
 update_uboot() {
 	local file="/media/fat/linux/u-boot.txt"
 	if [ -n "$1" ] && [ "$iface" = "eth0" ]; then
-		if [ ! -f "$file" ]; then
+		if [ ! -e "$file" ]; then
 			echo "ethaddr=${1^^}" > "$file"
-		elif grep -q '^ethaddr=' "$file"; then
-			sed -i "s/^ethaddr=.*/ethaddr=${1^^}/" "$file"
+		elif grep -q 'ethaddr=' "$file"; then
+			sed -i "s/\(ethaddr=\)[0-9A-Fa-f:]\+/\1${1^^}/" "$file"
 		else
 			echo "ethaddr=${1^^}" >> "$file"
 		fi
