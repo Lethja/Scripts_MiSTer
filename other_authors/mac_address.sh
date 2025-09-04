@@ -21,19 +21,22 @@ gen() {
 	local blacklist
 	mapfile -t blacklist <<< "$1"
 	while :; do
-		local hex=$(tr -dc '0-9a-f' </dev/urandom | head -c 12)
-		local mac=$(echo $hex | sed 's/../&:/g; s/:$//')
+		local hex
+		local mac
+
+	hex=$(tr -dc '0-9a-f' </dev/urandom | head -c 12)
+	mac=$(echo "$hex" | sed 's/../&:/g; s/:$//')
 
 		# Skip special addresses
 		first_byte=$((16#${hex:0:2}))
-		if (( first_byte & 1 )) || [[ ${mac:0:2} == "02" ]] || [[ "$mac" == "FF:FF:FF:FF:FF:FF" ]] || [[ "$mac" == "00:00:00:00:00:00" ]]; then
+		if (( first_byte & 1 )) || [[ "$mac" = "FF:FF:FF:FF:FF:FF" ]] || [[ "$mac" = "00:00:00:00:00:00" ]]; then
 			continue
 		fi
 
 		# Skip address already in use
 		local skip=0
 		for b in "${blacklist[@]}"; do
-			[[ "$mac" == "$b" ]] && skip=1 && break
+			[[ "$mac" = "$b" ]] && skip=1 && break
 		done
 		[[ $skip -eq 1 ]] && continue
 
@@ -76,28 +79,29 @@ warn() {
 }
 
 auto() {
-	warn
-	if [ $? -ne 0 ]; then
+	if ! warn; then
 		return
 	fi
 
+  local choice
 	local macs=""
 	local msg="Would you like to discover MAC addresses already in use on $iface network.\
 		Doing so helps prevent a MAC address already in use being assigned to this device,\
 		however on some networks it may take a long time to complete."
-	local choice=$(dialog --menu "$msg" 12 64 3 \
+	choice=$(dialog --menu "$msg" 12 64 3 \
 		Y "Yes, discover MAC addresses on $iface" N "No, just generate a MAC address" 3>&1 1>&2 2>&3)
 
 	case $choice in
 		Y)
-			local cidr=$(ip -o -f inet addr show $iface | awk 'NR==0 {exit 1} {print $4}')
+			local cidr
+			cidr=$(ip -o -f inet addr show "$iface" | awk 'NR==0 {exit 1} {print $4}')
 			if [ -n "$cidr" ]; then
 				macs=$(scan "$cidr")
 			else
 				local msg="There doesn't appear to be a network connection on $iface. It will not be possible to discover MAC addresses in use on your network.\
 					\n\nWould you like to continue generating a new MAC address anyway?"
-				dialog --yesno "$msg" 8 72 1>&2
-				if [ $? -ne 0 ]; then
+
+				if ! dialog --yesno "$msg" 8 72 1>&2; then
 					return
 				fi
 			fi
@@ -106,13 +110,15 @@ auto() {
 		*) return ;;
 	esac
 
-	local mac=$(gen "$macs")
+	local mac
+	local check
+	mac=$(gen "$macs")
 
 	update_mac "$mac"
 
-	local check="$(cat /sys/class/net/$iface/address)"
+	check=$(cat "/sys/class/net/$iface/address")
 
-	if [ "$check" == "$mac" ]; then
+	if [ "$check" = "$mac" ]; then
 		update_uboot "$check"
 
 		local msg="The MAC address for $iface is now '$check'"
@@ -128,16 +134,15 @@ auto() {
 }
 
 manual() {
-	warn
-	if [ $? -ne 0 ]; then
+	if ! warn; then
 		return
 	fi
 
-	local current="$(cat /sys/class/net/$iface/address)"
+	local current
+	current=$(cat "/sys/class/net/$iface/address")
 	local input="$current"
 	while true; do
-		input=$(dialog --inputbox "The MAC address for $iface is currently '$current'\n\nPlease enter a new MAC address..." 11 42 "$input" 3>&1 1>&2 2>&3)
-		if [ $? -ne 0 ]; then
+		if ! input=$(dialog --inputbox "The MAC address for $iface is currently '$current'\n\nPlease enter a new MAC address..." 11 42 "$input" 3>&1 1>&2 2>&3); then
 			return
 		fi
 
@@ -151,23 +156,23 @@ manual() {
 		fi
 
 		# Validate user input isn't a special address
-		first_octet=$(echo "$input" | cut -d: -f1)
-		first_byte=$((16#${first_octet:0:2}))
-		if (( first_byte & 1 )) || [[ "$input" == "FF:FF:FF:FF:FF:FF" ]] || [[ "$input" == "00:00:00:00:00:00" ]]; then
+		first_byte=$((16#${input:0:2}))
+		if (( first_byte & 1 )) || [[ "$input" = "FF:FF:FF:FF:FF:FF" ]] || [[ "$input" = "00:00:00:00:00:00" ]]; then
 			dialog --msgbox "This MAC address can not be assigned to a network adapter." 7 32 1>&2
 			continue
 		fi
 
 		# Don't reconfigure if the users MAC address is already what is set
-		if [ "$input" = "$current" ]; then
+		if [ "${input^^}" = "${current^^}" ]; then
 			return
 		fi
 
 		update_mac "$input"
 
-		local check="$(cat /sys/class/net/$iface/address)"
+		local check
+		check=$(cat "/sys/class/net/$iface/address")
 
-		if [ "${check^^}" == "${input^^}" ]; then
+		if [ "${check^^}" = "${input^^}" ]; then
 			update_uboot "$check"
 
 			local msg="The MAC address for $iface is now '$check'"
@@ -208,8 +213,10 @@ main_menu() {
 	fi
 
 	while true; do
-		local addr=$(cat /sys/class/net/$iface/address)
-		local choice=$(dialog --menu "The current MAC address for $iface is '$addr'.\n\nWhat do you want to do?" 12 36 3 \
+	  local addr
+	  local choice
+		addr=$(cat "/sys/class/net/$iface/address")
+		choice=$(dialog --menu "The current MAC address for $iface is '$addr'.\n\nWhat do you want to do?" 12 36 3 \
 			1 "Generate MAC address" 2 "Set MAC address manually" 3>&1 1>&2 2>&3)
 
 		case $choice in
