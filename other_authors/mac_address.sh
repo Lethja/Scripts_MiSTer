@@ -189,6 +189,14 @@ manual() {
 }
 
 main_menu() {
+  # Check required commands exist
+  for cmd in dialog fping ip dhcpcd; do
+	if ! command -v "$cmd" &> /dev/null; then
+		echo "Error: Required command '$cmd' not found." >&2
+		exit 1
+	fi
+  done
+
 	# Check script is running as root
 	if [ "$EUID" -ne 0 ]; then
 		dialog --msgbox "Configuring MAC addresses requires root.\nPlease run again as root." 6 52
