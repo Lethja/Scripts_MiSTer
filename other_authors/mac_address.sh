@@ -24,14 +24,20 @@ gen() {
 		local hex
 		local mac
 
-	hex=$(tr -dc '0-9a-f' </dev/urandom | head -c 12)
-	mac=$(echo "$hex" | sed 's/../&:/g; s/:$//')
+		hex=$(tr -dc '0-9a-f' </dev/urandom | head -c 12)
+		mac=$(echo "$hex" | sed 's/../&:/g; s/:$//')
 
-		# Skip special addresses
-		first_byte=$((16#${hex:0:2}))
-		if (( first_byte & 1 )) || [[ "$mac" = "FF:FF:FF:FF:FF:FF" ]] || [[ "$mac" = "00:00:00:00:00:00" ]]; then
+		# Don't allow broadcast or zero
+		if [[ "$mac" = "FF:FF:FF:FF:FF:FF" ]] || [[ "$mac" = "00:00:00:00:00:00" ]]; then
 			continue
 		fi
+
+		# Don't allow multi-cast or universally administered MAC addresses
+		first_byte=$((16#${hex:0:2}))
+		first_byte=$((first_byte & ~1)) # Ensure unicast
+		first_byte=$((first_byte | 2))  # Ensure locally administered
+		first_byte=$(printf "%02x" $first_byte)
+		hex="${first_byte}${hex:2}"
 
 		# Skip address already in use
 		local skip=0
@@ -83,7 +89,7 @@ auto() {
 		return
 	fi
 
-  local choice
+	local choice
 	local macs=""
 	local msg="Would you like to discover MAC addresses already in use on $iface network.\
 		Doing so helps prevent a MAC address already in use being assigned to this device,\
